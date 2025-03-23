@@ -1,0 +1,17 @@
+{
+  "name": "whiskeylazy-finance",
+  "version": "1.0.0",
+  "description": "WhiskeyLazy Finance application for Netlify/Vercel deployment",
+  "scripts": {
+    "install:all": "npm install && cd frontend && npm install && cd ../api && npm install",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:api": "cd api && npm run start",
+    "build": "cd frontend && npm run build",
+    "deploy:netlify": "netlify deploy --prod",
+    "deploy:vercel": "vercel --prod"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0",
+    "netlify-cli": "^12.10.0"
+  }
+} 
