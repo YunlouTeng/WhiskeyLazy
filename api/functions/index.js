@@ -3,29 +3,49 @@ const transactions = require('./transactions.js');
 
 // Use dynamic imports to avoid Netlify bundling issues
 // We'll require these packages at runtime instead of bundling them
-let Configuration, PlaidApi, PlaidEnvironments, jwt;
+let plaid, jwt;
 
 // Wrapped in try/catch to help debug any loading issues
 try {
-  const plaid = require('plaid');
-  Configuration = plaid.Configuration;
-  PlaidApi = plaid.PlaidApi;
-  PlaidEnvironments = plaid.PlaidEnvironments;
-  
+  plaid = require('plaid');
   jwt = require('jsonwebtoken');
-  
   console.log('Successfully imported plaid and jsonwebtoken packages');
 } catch (error) {
   console.error('Error importing dependencies:', error);
-  // Fallback empty implementations to avoid crashes
-  Configuration = class {};
-  PlaidApi = class {};
-  PlaidEnvironments = { sandbox: 'https://sandbox.plaid.com' };
+  // Create mock implementations
+  plaid = {
+    Configuration: class {},
+    PlaidApi: class {
+      constructor() {
+        // Add mock methods
+        this.linkTokenCreate = async () => ({ 
+          data: { link_token: 'mock-link-token-' + Date.now() } 
+        });
+        this.itemPublicTokenExchange = async () => ({
+          data: { access_token: 'mock-access-token', item_id: 'mock-item-id' }
+        });
+        this.accountsGet = async () => ({
+          data: { 
+            accounts: [],
+            item: { institution_id: 'mock-institution' }
+          }
+        });
+        this.transactionsGet = async () => ({
+          data: { transactions: [] }
+        });
+      }
+    },
+    PlaidEnvironments: { sandbox: 'https://sandbox.plaid.com' }
+  };
+  
   jwt = {
     verify: () => { return null; },
     sign: () => { return 'mock-token'; }
   };
 }
+
+// Get classes and constants from the plaid module
+const { Configuration, PlaidApi, PlaidEnvironments } = plaid;
 
 // JWT Secret for authentication
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -36,17 +56,26 @@ const PLAID_SECRET = process.env.PLAID_SECRET || process.env.VITE_PLAID_SECRET;
 const PLAID_ENV = process.env.PLAID_ENV || process.env.VITE_PLAID_ENV || 'sandbox';
 
 // Initialize Plaid client
-const plaidConfig = new Configuration({
-  basePath: PlaidEnvironments[PLAID_ENV],
-  baseOptions: {
-    headers: {
-      'PLAID-CLIENT-ID': PLAID_CLIENT_ID,
-      'PLAID-SECRET': PLAID_SECRET,
+let plaidClient;
+try {
+  const plaidConfig = new Configuration({
+    basePath: PlaidEnvironments[PLAID_ENV],
+    baseOptions: {
+      headers: {
+        'PLAID-CLIENT-ID': PLAID_CLIENT_ID,
+        'PLAID-SECRET': PLAID_SECRET,
+      },
     },
-  },
-});
+  });
 
-const plaidClient = new PlaidApi(plaidConfig);
+  plaidClient = new PlaidApi(plaidConfig);
+  console.log('Successfully initialized Plaid client');
+} catch (error) {
+  console.error('Error initializing Plaid client:', error);
+  // Use mock client as fallback
+  plaidClient = new plaid.PlaidApi();
+  console.log('Using mock Plaid client as fallback');
+}
 
 // Verify JWT token middleware
 const verifyToken = (authHeader) => {
