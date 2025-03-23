@@ -1,12 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
-import supabase from '../../../src/lib/supabase';
-import { useSupabaseAuth } from '../../../src/lib/supabaseHooks';
+import { useAuth } from '../context/AuthContext';
+import supabase from '../lib/supabase';
 
 const Login = () => {
-  const { isAuthenticated, loading } = useSupabaseAuth();
+  const { isAuthenticated, loading, login } = useAuth();
+  const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/dashboard';
@@ -54,6 +55,8 @@ const Login = () => {
             providers={['google', 'github']}
             redirectTo={`${window.location.origin}/dashboard`}
             socialLayout="horizontal"
+            skipEmailConfirmation={true}
+            emailRedirectTo={`${window.location.origin}/dashboard`}
           />
         )}
       </div>

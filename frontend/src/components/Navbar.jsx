@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useSupabaseAuth } from '../../../src/lib/supabaseHooks';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
-  const { isAuthenticated, user, signOut } = useSupabaseAuth();
+  const { isAuthenticated, currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    await signOut();
+    await logout();
     navigate('/login');
   };
 
@@ -37,7 +37,7 @@ const Navbar = () => {
               </Link>
               <div className="relative group">
                 <button className="flex items-center hover:text-blue-200 transition-colors">
-                  <span className="mr-1">{user?.email?.split('@')[0] || 'User'}</span>
+                  <span className="mr-1">{currentUser?.email?.split('@')[0] || 'User'}</span>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>

@@ -10,9 +10,9 @@ import axios from 'axios';
 let API_BASE_URL = '/api';
 
 // For local development, we might need to use a different URL
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
   // If running frontend on different port than backend in development
-  API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 }
 
 // Create axios instance with default config

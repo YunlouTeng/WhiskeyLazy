@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useSupabaseAuth } from '../../../src/lib/supabaseHooks';
+import { useAuth } from '../context/AuthContext';
 
 const Budgets = () => {
-  const { user } = useSupabaseAuth();
+  const { currentUser } = useAuth();
   const [budgets, setBudgets] = useState([
     { id: 1, category: 'Food & Dining', limit: 600, spent: 423.45, color: 'bg-blue-500' },
     { id: 2, category: 'Entertainment', limit: 200, spent: 187.32, color: 'bg-purple-500' },

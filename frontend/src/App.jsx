@@ -1,6 +1,6 @@
-import React, { Component, useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { SupabaseAuthProvider } from './lib/supabaseHooks.jsx';
+import React, { Component } from 'react';
+import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -9,7 +9,6 @@ import Transactions from './pages/Transactions';
 import Budgets from './pages/Budgets';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
-import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
 // Error boundary to catch React errors
@@ -45,6 +44,30 @@ class ErrorBoundary extends Component {
     return this.props.children;
   }
 }
+
+// Add a new ProtectedRoute component
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  
+  // If still loading, show loading indicator
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="p-4 text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // If not authenticated, redirect to login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
 
 // Debug component to help diagnose issues
 const DebugPage = () => {
@@ -97,88 +120,84 @@ const DebugPage = () => {
 function App() {
   return (
     <ErrorBoundary>
-      <SupabaseAuthProvider>
-        <Router>
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <div className="flex-grow">
-              <Routes>
-                {/* Debug route */}
-                <Route path="/debug" element={<DebugPage />} />
-                
-                {/* Public routes */}
-                <Route path="/login" element={<Login />} />
-                
-                {/* Redirect root to dashboard if logged in, otherwise to login */}
-                <Route 
-                  path="/" 
-                  element={
-                    <ProtectedRoute>
-                      <Navigate to="/dashboard" replace />
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                {/* Protected routes */}
-                <Route 
-                  path="/dashboard" 
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/accounts" 
-                  element={
-                    <ProtectedRoute>
-                      <Accounts />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/transactions" 
-                  element={
-                    <ProtectedRoute>
-                      <Transactions />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/budgets" 
-                  element={
-                    <ProtectedRoute>
-                      <Budgets />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/profile" 
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/settings" 
-                  element={
-                    <ProtectedRoute>
-                      <Settings />
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                {/* Catch all - redirect to login */}
-                <Route path="*" element={<Navigate to="/login" replace />} />
-              </Routes>
-            </div>
-            <footer className="bg-gray-100 p-4 text-center text-gray-600 text-sm">
-              &copy; {new Date().getFullYear()} WhiskeyLazy Finance. All rights reserved.
-            </footer>
-          </div>
-        </Router>
-      </SupabaseAuthProvider>
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex-grow">
+          <Routes>
+            {/* Debug route */}
+            <Route path="/debug" element={<DebugPage />} />
+            
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            
+            {/* Redirect root to dashboard if logged in, otherwise to login */}
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <Navigate to="/dashboard" replace />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Protected routes */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/accounts" 
+              element={
+                <ProtectedRoute>
+                  <Accounts />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/transactions" 
+              element={
+                <ProtectedRoute>
+                  <Transactions />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/budgets" 
+              element={
+                <ProtectedRoute>
+                  <Budgets />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Catch all - redirect to login */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </div>
+        <footer className="bg-gray-100 p-4 text-center text-gray-600 text-sm">
+          &copy; {new Date().getFullYear()} WhiskeyLazy Finance. All rights reserved.
+        </footer>
+      </div>
     </ErrorBoundary>
   );
 }

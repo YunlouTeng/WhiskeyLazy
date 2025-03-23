@@ -1,5 +1,5 @@
 // Supabase client configuration
-import { createClient } from './supabaseImport.js';
+import { createClient } from '@supabase/supabase-js';
 
 // Debug environment variables in the console
 console.log('Environment mode:', process.env.NODE_ENV);
@@ -20,12 +20,15 @@ console.log('Supabase URL:', supabaseUrl ? 'Set (starts with ' + supabaseUrl.sub
 console.log('Supabase Anon Key:', supabaseAnonKey ? 'Set (length: ' + supabaseAnonKey.length + ')' : 'NOT SET');
 
 // Create a single supabase client for the entire app
-const supabase = createClient(supabaseUrl || 'https://placeholder-url.supabase.co', 
-                             supabaseAnonKey || 'placeholder-key', {
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+    // Skip email verification to allow immediate login after signup
+    shouldCreateUser: true,
+    emailRedirectTo: window.location.origin + '/dashboard'
   }
 });
 

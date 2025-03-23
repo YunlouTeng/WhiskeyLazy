@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
-import supabase from '../../../src/lib/supabase';
-import { usePlaidTokens } from '../../../src/lib/supabaseHooks';
+import { useSupabaseAuth } from '../lib/supabaseHooks.jsx';
+import supabase from '../lib/supabase';
+import { usePlaidTokens } from '../lib/supabaseHooks.jsx';
 
 /**
  * Plaid Link component that integrates with Supabase

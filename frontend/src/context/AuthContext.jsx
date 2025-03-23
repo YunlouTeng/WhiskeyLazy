@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../config/api';
-import { API_BASE_URL } from '../config/api';
+import supabase from '../lib/supabase';
 
 // Create Auth Context
 const AuthContext = createContext(null);
@@ -22,9 +21,9 @@ const DEV_MODE = process.env.NODE_ENV === 'development';
 
 export default function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(!!token);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
   
   // Enhanced console logging for development mode
@@ -34,178 +33,178 @@ export default function AuthProvider({ children }) {
     }
   };
   
-  // When token changes, update isAuthenticated and localStorage
+  // Check authentication state on mount
   useEffect(() => {
-    if (token) {
-      localStorage.setItem('token', token);
-      setIsAuthenticated(true);
-      logDev('Token updated', token.substring(0, 15) + '...');
-    } else {
-      localStorage.removeItem('token');
-      setIsAuthenticated(false);
-      logDev('Token removed');
-    }
-    setLoading(false);
-  }, [token]);
+    const checkAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          throw error;
+        }
+
+        if (session) {
+          setCurrentUser(session.user);
+          setToken(session.access_token);
+          setIsAuthenticated(true);
+          logDev('User is authenticated', session.user.email);
+        } else {
+          setCurrentUser(null);
+          setToken(null);
+          setIsAuthenticated(false);
+          logDev('No active session found');
+        }
+      } catch (err) {
+        console.error('Error checking auth status:', err);
+        setCurrentUser(null);
+        setToken(null);
+        setIsAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setCurrentUser(session.user);
+        setToken(session.access_token);
+        setIsAuthenticated(true);
+        logDev('Auth state changed - authenticated', session.user.email);
+      } else {
+        setCurrentUser(null);
+        setToken(null);
+        setIsAuthenticated(false);
+        logDev('Auth state changed - unauthenticated');
+      }
+      setLoading(false);
+    });
+
+    // Clean up subscription
+    return () => {
+      if (subscription) subscription.unsubscribe();
+    };
+  }, []);
 
   // Login function
   const login = async (email, password) => {
     setLoading(true);
     
     try {
-      // For demo: Skip actual API call if we're in development with no backend
-      if (DEV_MODE) {
-        logDev('Using mock login response');
-        
-        // Mock successful login
-        const newToken = 'mock_jwt_token_' + Date.now();
-        const user = {
-          id: email.includes('admin') ? 'admin123' : '123',
-          name: email.split('@')[0],
-          email
-        };
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        setToken(newToken);
-        setCurrentUser(user);
-        setIsAuthenticated(true);
-        
-        return {
-          success: true,
-          user,
-          token: newToken
-        };
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        throw error;
       }
+
+      const { user, session } = data;
       
-      // Real API call in production
-      const response = await api.post('/auth/login', { email, password });
-      
-      const { user, token: newToken } = response.data;
-      
-      setToken(newToken);
       setCurrentUser(user);
+      setToken(session.access_token);
+      setIsAuthenticated(true);
       
       return {
         success: true,
         user,
-        token: newToken
+        token: session.access_token
       };
     } catch (error) {
       console.error('Login error:', error);
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Login failed. Please try again.'
+        message: error.message || 'Login failed. Please try again.'
       };
     } finally {
       setLoading(false);
     }
   };
-  
+
   // Register function
   const register = async (userData) => {
     setLoading(true);
     
     try {
-      // For demo: Skip actual API call if we're in development with no backend
-      if (DEV_MODE) {
-        logDev('Using mock register response');
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        return {
-          success: true,
-          message: 'Registration successful! You can now log in.'
-        };
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          data: {
+            full_name: userData.name
+          },
+          emailRedirectTo: window.location.origin + '/dashboard',
+          // Skip email confirmation
+          emailConfirm: false
+        }
+      });
+
+      if (error) {
+        throw error;
       }
+
+      const { user, session } = data;
       
-      // Real API call in production
-      const response = await api.post('/auth/register', userData);
+      if (session) {
+        // User is automatically signed in if email confirmation is disabled
+        setCurrentUser(user);
+        setToken(session.access_token);
+        setIsAuthenticated(true);
+      }
       
       return {
         success: true,
-        message: response.data.message || 'Registration successful! You can now log in.'
+        user,
+        token: session?.access_token
       };
     } catch (error) {
       console.error('Registration error:', error);
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Registration failed. Please try again.'
+        message: error.message || 'Registration failed. Please try again.'
       };
     } finally {
       setLoading(false);
     }
   };
-  
+
   // Logout function
-  const logout = () => {
-    setToken(null);
-    setCurrentUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('token');
-    navigate('/login');
-  };
-
-  // Check if token is valid and get user data on initial load
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (!token) {
-        if (DEV_MODE) {
-          logDev('Auto-logging in demo user');
-          await login('demo@example.com', 'password');
-        } else {
-          setLoading(false);
-        }
-        return;
+  const logout = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
       }
-
-      try {
-        // For demo purposes, we'll just validate the token format
-        // In a real app, you'd verify with the server
-        setIsAuthenticated(true);
-        
-        // For demo, set a mock user since our backend might not support profile endpoint yet
-        setCurrentUser({
-          id: '123',
-          name: 'Demo User',
-          email: 'user@example.com'
-        });
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Auth check error:', error);
-        logout();
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  // Auto-login in development mode if no user is logged in
-  // This is a separate effect that runs after the initial auth check
-  useEffect(() => {
-    if (DEV_MODE && !isAuthenticated && !loading) {
-      logDev('Double-checking auto-login');
-      login('demo@example.com', 'password');
+      
+      setCurrentUser(null);
+      setToken(null);
+      setIsAuthenticated(false);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [loading, isAuthenticated]);
-  
-  // Context value
-  const value = {
-    currentUser,
-    token,
-    isAuthenticated,
-    loading,
-    login,
-    register,
-    logout
   };
-  
+
+  // Provide the auth context to children
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider 
+      value={{
+        currentUser,
+        token,
+        isAuthenticated,
+        loading,
+        login,
+        register,
+        logout
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
-}; 
+} 

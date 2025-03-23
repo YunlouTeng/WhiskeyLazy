@@ -108,7 +108,10 @@ export function useSupabaseAuth() {
         email,
         password,
         options: {
-          data: metadata
+          data: metadata,
+          emailRedirectTo: window.location.origin + '/dashboard',
+          // Set to false to skip email confirmation
+          emailConfirm: false
         }
       });
 

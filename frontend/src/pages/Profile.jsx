@@ -1,23 +1,23 @@
 import React from 'react';
-import { useSupabaseAuth } from '../../../src/lib/supabaseHooks';
+import { useAuth } from '../context/AuthContext';
 
 const Profile = () => {
-  const { user } = useSupabaseAuth();
+  const { currentUser } = useAuth();
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-6">Your Profile</h1>
         
-        {user ? (
+        {currentUser ? (
           <div className="space-y-4">
             <div className="flex items-center space-x-4">
               <div className="bg-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-xl font-bold">
-                {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
+                {currentUser.email ? currentUser.email.charAt(0).toUpperCase() : 'U'}
               </div>
               <div>
-                <h2 className="text-xl font-semibold">{user.user_metadata?.full_name || 'User'}</h2>
-                <p className="text-gray-600">{user.email}</p>
+                <h2 className="text-xl font-semibold">{currentUser.user_metadata?.full_name || 'User'}</h2>
+                <p className="text-gray-600">{currentUser.email}</p>
               </div>
             </div>
             
@@ -26,19 +26,19 @@ const Profile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Email</p>
-                  <p className="font-medium">{user.email}</p>
+                  <p className="font-medium">{currentUser.email}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Account ID</p>
-                  <p className="font-medium">{user.id}</p>
+                  <p className="font-medium">{currentUser.id}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Last Sign In</p>
-                  <p className="font-medium">{new Date(user.last_sign_in_at).toLocaleString()}</p>
+                  <p className="font-medium">{new Date(currentUser.last_sign_in_at).toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Account Created</p>
-                  <p className="font-medium">{new Date(user.created_at).toLocaleString()}</p>
+                  <p className="font-medium">{new Date(currentUser.created_at).toLocaleString()}</p>
                 </div>
               </div>
             </div>

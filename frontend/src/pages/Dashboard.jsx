@@ -4,15 +4,15 @@ import axios from 'axios';
 import { Pie, Line, Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title } from 'chart.js';
 import { formatCurrency } from '../utils/formatters';
-import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL, API_ENDPOINTS, handleApiError } from '../config/api';
 import api from '../config/api';
-import { getAccounts, getTransactions } from '../services/plaidService';
+// Commenting out until we integrate these with Supabase
+// import { getAccounts, getTransactions } from '../services/plaidService';
 import { extractErrorMessage } from '../utils/errorHandling';
 import AccountCard from '../components/AccountCard';
 import TransactionList from '../components/TransactionList';
 import BalanceChart from '../components/BalanceChart';
-import { useSupabaseAuth } from '../../../src/lib/supabaseHooks';
+import { useAuth } from '../context/AuthContext';
 
 // Register ChartJS components
 ChartJS.register(
@@ -87,14 +87,13 @@ const categoryIcons = {
 };
 
 const Dashboard = () => {
-  const { currentUser, token } = useAuth();
   const [accounts, setAccounts] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [monthlySpending, setMonthlySpending] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [visualizationType, setVisualizationType] = useState('spending'); // 'spending' or 'assets'
-  const { user } = useSupabaseAuth();
+  const { currentUser } = useAuth();
   
   // Fetch data on component mount
   useEffect(() => {
@@ -103,48 +102,42 @@ const Dashboard = () => {
       setError(null);
       
       try {
-        // Get accounts
-        const accountsResponse = await getAccounts(token);
+        // For now, use mock data instead of real API calls
         
-        if (accountsResponse.success) {
-          setAccounts(accountsResponse.accounts);
-        } else {
-          console.error('Failed to load accounts:', accountsResponse.message);
-          setError('Failed to load accounts. ' + accountsResponse.message);
-        }
+        // Mock accounts data
+        const mockAccounts = [
+          { id: 1, name: 'Main Checking', institution_name: 'Bank of America', balance: 2543.21, type: 'checking' },
+          { id: 2, name: 'Savings', institution_name: 'Bank of America', balance: 15640.35, type: 'savings' },
+          { id: 3, name: 'Credit Card', institution_name: 'Chase', balance: -1254.86, type: 'credit' },
+          { id: 4, name: 'Investment', institution_name: 'Vanguard', balance: 8452.96, type: 'investment' }
+        ];
+        setAccounts(mockAccounts);
         
-        // Get transactions
-        const transactionsResponse = await getTransactions(token);
+        // Mock transactions data
+        const mockTransactions = [
+          { id: 1, date: '2023-07-15', description: 'Grocery Store', amount: -125.68, category: 'Food' },
+          { id: 2, date: '2023-07-14', description: 'Salary Deposit', amount: 3250.00, category: 'Income' },
+          { id: 3, date: '2023-07-12', description: 'Electric Bill', amount: -98.42, category: 'Utilities' },
+          { id: 4, date: '2023-07-10', description: 'Restaurant', amount: -86.29, category: 'Dining' },
+          { id: 5, date: '2023-07-08', description: 'Gas Station', amount: -45.33, category: 'Transportation' },
+          { id: 6, date: '2023-07-05', description: 'Online Store', amount: -65.99, category: 'Shopping' },
+          { id: 7, date: '2023-07-03', description: 'Movie Tickets', amount: -32.50, category: 'Entertainment' },
+          { id: 8, date: '2023-07-01', description: 'Pharmacy', amount: -28.75, category: 'Health' }
+        ];
+        setTransactions(mockTransactions);
         
-        if (transactionsResponse.success) {
-          // Sort by date (newest first)
-          const sortedTransactions = [...transactionsResponse.transactions]
-            .sort((a, b) => new Date(b.date) - new Date(a.date));
-          
-          setTransactions(sortedTransactions);
-        } else {
-          console.error('Failed to load transactions:', transactionsResponse.message);
-          setError('Failed to load transactions. ' + transactionsResponse.message);
-        }
+        // Mock monthly spending data
+        const mockMonthlySpending = [
+          { month: 'Jan', totalSpent: 1245.67 },
+          { month: 'Feb', totalSpent: 1378.42 },
+          { month: 'Mar', totalSpent: 1156.89 },
+          { month: 'Apr', totalSpent: 1489.32 },
+          { month: 'May', totalSpent: 1298.76 },
+          { month: 'Jun', totalSpent: 1422.18 },
+          { month: 'Jul', totalSpent: 1356.45 }
+        ];
+        setMonthlySpending(mockMonthlySpending);
         
-        // Get monthly spending data
-        try {
-          const monthlyResponse = await api.get('/spending/monthly');
-          setMonthlySpending(monthlyResponse.data);
-        } catch (err) {
-          console.error('Failed to load monthly spending:', err);
-          // Don't set error here, it's not critical for the dashboard
-          
-          // Use mock data instead
-          setMonthlySpending([
-            { month: 'Jan', totalSpent: 1245.67 },
-            { month: 'Feb', totalSpent: 1378.42 },
-            { month: 'Mar', totalSpent: 1156.89 },
-            { month: 'Apr', totalSpent: 1489.32 },
-            { month: 'May', totalSpent: 1298.76 },
-            { month: 'Jun', totalSpent: 1422.18 }
-          ]);
-        }
       } catch (err) {
         console.error('Dashboard error:', err);
         setError('An unexpected error occurred. Please try again.');
@@ -154,7 +147,7 @@ const Dashboard = () => {
     };
     
     fetchData();
-  }, [token]);
+  }, []);
   
   // Calculate total balance across all accounts
   const totalBalance = accounts.reduce((total, account) => total + account.balance, 0);
@@ -359,7 +352,7 @@ const Dashboard = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Welcome, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Welcome, {currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'User'}</h1>
         <p className="text-gray-600 mt-2">Here's your financial overview</p>
       </header>
 

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useSupabaseAuth } from '../../../src/lib/supabaseHooks';
+import { useAuth } from '../context/AuthContext';
 
 const Settings = () => {
-  const { user, signOut } = useSupabaseAuth();
+  const { currentUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('account');
   const [darkMode, setDarkMode] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -10,7 +10,7 @@ const Settings = () => {
   const [language, setLanguage] = useState('en');
   
   const handleSignOut = async () => {
-    await signOut();
+    await logout();
     // Redirect is handled by the auth hook
   };
   
@@ -57,7 +57,7 @@ const Settings = () => {
               <div className="flex">
                 <input
                   type="email"
-                  value={user?.email || ''}
+                  value={currentUser?.email || ''}
                   readOnly
                   className="block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 focus:outline-none"
                 />
@@ -71,7 +71,7 @@ const Settings = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
               <input
                 type="text"
-                defaultValue={user?.user_metadata?.full_name || ''}
+                defaultValue={currentUser?.user_metadata?.full_name || ''}
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

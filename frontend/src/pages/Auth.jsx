@@ -2,8 +2,8 @@ import React, { useEffect } from 'react';
 import { Auth as SupabaseAuth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useNavigate } from 'react-router-dom';
-import supabase from '../../../src/lib/supabase';
-import { useSupabaseAuth } from '../../../src/lib/supabaseHooks';
+import supabase from '../lib/supabase';
+import { useSupabaseAuth } from '../lib/supabaseHooks.jsx';
 
 /**
  * Authentication page using Supabase Auth UI
@@ -65,6 +65,8 @@ const Auth = () => {
             providers={['google', 'github']}
             redirectTo={window.location.origin + '/dashboard'}
             socialLayout="horizontal"
+            skipEmailConfirmation={true}
+            emailRedirectTo={window.location.origin + '/dashboard'}
           />
         </div>
       </div>

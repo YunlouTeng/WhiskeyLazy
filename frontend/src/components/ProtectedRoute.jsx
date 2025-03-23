@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useSupabaseAuth } from '../../../src/lib/supabaseHooks';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * Protected Route component
@@ -8,7 +8,7 @@ import { useSupabaseAuth } from '../../../src/lib/supabaseHooks';
  * Redirects unauthenticated users to the login page
  */
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useSupabaseAuth();
+  const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
