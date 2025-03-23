@@ -1,0 +1,11 @@
+{
+  "name": "whiskeylazy-functions",
+  "version": "1.0.0",
+  "description": "Netlify Functions for WhiskeyLazy Finance app",
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "plaid": "^10.9.0",
+    "axios": "^1.6.7",
+    "@supabase/supabase-js": "^2.21.0"
+  }
+} 

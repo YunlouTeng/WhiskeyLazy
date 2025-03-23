@@ -14,6 +14,14 @@
 [functions]
   directory = "../api/functions"
   node_bundler = "esbuild"
+  # Exclude these packages from bundling to avoid errors
+  external_node_modules = ["plaid", "jsonwebtoken", "axios", "@supabase/supabase-js"]
+  # Specify that we need to install dependencies in the API directory
+  included_files = ["../api/package.json"]
+
+# Install API dependencies during build
+[build.lifecycle]
+  onBuild = "cd ../api && npm install"
 
 # Health check endpoint for easy API debugging
 [[redirects]]
