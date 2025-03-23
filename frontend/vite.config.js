@@ -16,7 +16,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ["@supabase/supabase-js"]
+      // Don't mark any packages as external, let Vite bundle everything
     }
   }
 }) 
