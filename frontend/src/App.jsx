@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { SupabaseAuthProvider } from '../../src/lib/supabaseHooks';
+import { SupabaseAuthProvider } from './lib/supabaseHooks';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
