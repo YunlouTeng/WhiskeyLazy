@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhiskeyLazy Debugging</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .card {
+      background-color: #f5f5f5;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2563eb;
+    }
+    h2 {
+      color: #4b5563;
+      margin-top: 30px;
+    }
+    code, pre {
+      background-color: #f0f0f0;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    pre {
+      padding: 15px;
+      overflow-x: auto;
+    }
+    #env-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    #env-table th, #env-table td {
+      text-align: left;
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+    }
+    #env-table th {
+      background-color: #f0f0f0;
+    }
+    button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    #status {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>WhiskeyLazy Debugging Page</h1>
+  <p>This page helps diagnose issues with your Netlify deployment.</p>
+  
+  <div class="card">
+    <h2>Environment Information</h2>
+    <table id="env-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="env-vars">
+        <tr>
+          <td colspan="2">Loading environment variables...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="card">
+    <h2>Supabase Connection Test</h2>
+    <button id="test-supabase">Test Supabase Connection</button>
+    <div id="status"></div>
+    <pre id="result"></pre>
+  </div>
+  
+  <div class="card">
+    <h2>Browser Information</h2>
+    <pre id="browser-info"></pre>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Environment variables
+      const envVarsElement = document.getElementById('env-vars');
+      let envVarsHtml = '';
+      
+      // Show meta environment info first
+      envVarsHtml += `<tr><td>NODE_ENV</td><td>${process.env.NODE_ENV || 'Not available'}</td></tr>`;
+      
+      // Get all VITE_ variables
+      const viteVars = Object.keys(import.meta.env)
+        .filter(key => key.startsWith('VITE_'))
+        .sort();
+        
+      if (viteVars.length === 0) {
+        envVarsHtml += `<tr><td colspan="2">No VITE_ environment variables found</td></tr>`;
+      } else {
+        viteVars.forEach(key => {
+          const value = import.meta.env[key];
+          const displayValue = value 
+            ? `✅ Set (${typeof value === 'string' ? value.length + ' chars' : typeof value})`
+            : '❌ Not set';
+          envVarsHtml += `<tr><td>${key}</td><td>${displayValue}</td></tr>`;
+        });
+      }
+      
+      envVarsElement.innerHTML = envVarsHtml;
+      
+      // Browser info
+      const browserInfoElement = document.getElementById('browser-info');
+      browserInfoElement.textContent = `
+User Agent: ${navigator.userAgent}
+Language: ${navigator.language}
+Online: ${navigator.onLine ? 'Yes' : 'No'}
+Platform: ${navigator.platform}
+Cookies Enabled: ${navigator.cookieEnabled ? 'Yes' : 'No'}
+      `.trim();
+      
+      // Supabase test
+      document.getElementById('test-supabase').addEventListener('click', async function() {
+        const statusElement = document.getElementById('status');
+        const resultElement = document.getElementById('result');
+        
+        statusElement.textContent = 'Testing Supabase connection...';
+        resultElement.textContent = '';
+        
+        try {
+          // Try to dynamically import Supabase
+          const supabaseModule = await import('@supabase/supabase-js');
+          
+          resultElement.textContent += `Successfully imported @supabase/supabase-js\n`;
+          statusElement.textContent = 'Import successful!';
+          
+          // Check if we have config values
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+          
+          if (!supabaseUrl || !supabaseKey) {
+            resultElement.textContent += `
+Error: Missing configuration values
+VITE_SUPABASE_URL: ${supabaseUrl ? '✅ Present' : '❌ Missing'}
+VITE_SUPABASE_ANON_KEY: ${supabaseKey ? '✅ Present' : '❌ Missing'}
+            `.trim();
+            statusElement.textContent = 'Configuration incomplete';
+            return;
+          }
+          
+          // Try to initialize Supabase client
+          const { createClient } = supabaseModule;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          
+          resultElement.textContent += `Created Supabase client\n`;
+          
+          // Try a simple request
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            throw new Error(`Auth error: ${error.message}`);
+          }
+          
+          resultElement.textContent += `
+Auth session check: ✅ Success 
+Session: ${data.session ? 'Active session found' : 'No active session'}
+          `.trim();
+          
+          statusElement.textContent = 'Connection successful!';
+          
+        } catch (error) {
+          console.error('Supabase test error:', error);
+          resultElement.textContent = `
+Error testing Supabase connection:
+${error.toString()}
+
+${error.stack || ''}
+          `.trim();
+          statusElement.textContent = 'Connection failed';
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

@@ -1,5 +1,5 @@
 // Supabase client configuration
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from './supabaseImport.js';
 
 // Debug environment variables in the console
 console.log('Environment mode:', process.env.NODE_ENV);
