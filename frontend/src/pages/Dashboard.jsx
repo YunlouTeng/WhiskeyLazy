@@ -87,381 +87,213 @@ const categoryIcons = {
 };
 
 const Dashboard = () => {
-  const [accounts, setAccounts] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [monthlySpending, setMonthlySpending] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [visualizationType, setVisualizationType] = useState('spending'); // 'spending' or 'assets'
   const { currentUser } = useAuth();
-  
-  // Fetch data on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        // For now, use mock data instead of real API calls
-        
-        // Mock accounts data
-        const mockAccounts = [
-          { id: 1, name: 'Main Checking', institution_name: 'Bank of America', balance: 2543.21, type: 'checking' },
-          { id: 2, name: 'Savings', institution_name: 'Bank of America', balance: 15640.35, type: 'savings' },
-          { id: 3, name: 'Credit Card', institution_name: 'Chase', balance: -1254.86, type: 'credit' },
-          { id: 4, name: 'Investment', institution_name: 'Vanguard', balance: 8452.96, type: 'investment' }
-        ];
-        setAccounts(mockAccounts);
-        
-        // Mock transactions data
-        const mockTransactions = [
-          { id: 1, date: '2023-07-15', description: 'Grocery Store', amount: -125.68, category: 'Food' },
-          { id: 2, date: '2023-07-14', description: 'Salary Deposit', amount: 3250.00, category: 'Income' },
-          { id: 3, date: '2023-07-12', description: 'Electric Bill', amount: -98.42, category: 'Utilities' },
-          { id: 4, date: '2023-07-10', description: 'Restaurant', amount: -86.29, category: 'Dining' },
-          { id: 5, date: '2023-07-08', description: 'Gas Station', amount: -45.33, category: 'Transportation' },
-          { id: 6, date: '2023-07-05', description: 'Online Store', amount: -65.99, category: 'Shopping' },
-          { id: 7, date: '2023-07-03', description: 'Movie Tickets', amount: -32.50, category: 'Entertainment' },
-          { id: 8, date: '2023-07-01', description: 'Pharmacy', amount: -28.75, category: 'Health' }
-        ];
-        setTransactions(mockTransactions);
-        
-        // Mock monthly spending data
-        const mockMonthlySpending = [
-          { month: 'Jan', totalSpent: 1245.67 },
-          { month: 'Feb', totalSpent: 1378.42 },
-          { month: 'Mar', totalSpent: 1156.89 },
-          { month: 'Apr', totalSpent: 1489.32 },
-          { month: 'May', totalSpent: 1298.76 },
-          { month: 'Jun', totalSpent: 1422.18 },
-          { month: 'Jul', totalSpent: 1356.45 }
-        ];
-        setMonthlySpending(mockMonthlySpending);
-        
-      } catch (err) {
-        console.error('Dashboard error:', err);
-        setError('An unexpected error occurred. Please try again.');
-      } finally {
-        setLoading(false);
+  const [loading, setLoading] = useState(false);
+
+  // Mock data - would come from API in production
+  const dashboardData = {
+    totalBalance: 12700.00,
+    connectedAccounts: 5,
+    recentTransactions: 16,
+    accounts: [
+      { id: 1, name: 'Plaid Checking', institution: 'Unknown Institution', mask: '0000', balance: 110.00, type: 'Checking' },
+      { id: 2, name: 'Plaid Saving', institution: 'Unknown Institution', mask: '1111', balance: 210.00, type: 'Savings' },
+      { id: 3, name: 'Plaid Cash Management', institution: 'Unknown Institution', mask: '9002', balance: 12060.00, type: 'Cash Management' },
+      { id: 4, name: 'Plaid Checking', institution: 'Unknown Institution', mask: '0000', balance: 110.00, type: 'Checking' },
+      { id: 5, name: 'Plaid Saving', institution: 'Unknown Institution', mask: '1111', balance: 210.00, type: 'Savings' },
+    ],
+    transactions: [
+      { id: 1, date: '2023-03-19', description: 'CREDIT CARD 3333 PAYMENT */', amount: -25.00, account: 'Plaid Saving', category: 'Payment' },
+      { id: 2, date: '2023-03-19', description: 'Uber 063015 SF**POOL**', amount: -5.40, account: 'Plaid Checking', category: 'Travel' },
+      { id: 3, date: '2023-03-19', description: 'CREDIT CARD 3333 PAYMENT */', amount: -25.00, account: 'Plaid Saving', category: 'Payment' },
+      { id: 4, date: '2023-03-19', description: 'Uber 063015 SF**POOL**', amount: -5.40, account: 'Plaid Checking', category: 'Travel' },
+      { id: 5, date: '2023-03-17', description: 'United Airlines', amount: 500.00, account: 'Plaid Checking', category: 'Travel' },
+    ],
+    monthlySpending: [
+      { month: 'December', amount: 1200.50 },
+      { month: 'January', amount: 1350.75 },
+      { month: 'February', amount: 1150.25 },
+      { month: 'March', amount: 1489.32 },
+      { month: 'April', amount: 1300.45 },
+      { month: 'May', amount: 1400.60 },
+    ],
+    averageMonthly: 1331.87,
+    highestMonth: 1489.32,
+  };
+
+  // Monthly spending chart data
+  const chartData = {
+    labels: dashboardData.monthlySpending.map(item => item.month),
+    datasets: [
+      {
+        data: dashboardData.monthlySpending.map(item => item.amount),
+        backgroundColor: '#965cf6',
+        borderRadius: 4,
+        barThickness: 35,
       }
-    };
-    
-    fetchData();
-  }, []);
-  
-  // Calculate total balance across all accounts
-  const totalBalance = accounts.reduce((total, account) => total + account.balance, 0);
-  
-  // Get recent transactions (last 5)
-  const recentTransactions = transactions.slice(0, 5);
-  
-  // Process data for Spending by Category chart
-  const calculateCategorySpending = () => {
-    // Get only expenses (negative amounts)
-    const expenses = transactions.filter(t => t.amount < 0);
-    
-    // Create an object to hold total spending by category
-    const categoryTotals = {};
-    
-    // Calculate totals
-    expenses.forEach(transaction => {
-      const category = transaction.category;
-      const amount = Math.abs(transaction.amount);
-      
-      if (categoryTotals[category]) {
-        categoryTotals[category] += amount;
-      } else {
-        categoryTotals[category] = amount;
-      }
-    });
-    
-    // Extract categories and spending amounts
-    const categories = Object.keys(categoryTotals);
-    const spendingAmounts = Object.values(categoryTotals);
-    const backgroundColors = categories.map(category => categoryColors[category] || categoryColors['Other']);
-    
-    return {
-      categories,
-      spendingAmounts,
-      backgroundColors,
-      categoryTotals
-    };
+    ]
   };
-  
-  const { categories, spendingAmounts, backgroundColors, categoryTotals } = calculateCategorySpending();
-  
-  // Setup category chart data
-  const categoryChartData = {
-    labels: categories,
-    datasets: [
-      {
-        data: spendingAmounts,
-        backgroundColor: backgroundColors,
-        borderColor: backgroundColors.map(color => color.replace('0.8', '1')),
-        borderWidth: 1,
-      },
-    ],
-  };
-  
-  // Setup monthly chart data
-  const monthlyChartData = {
-    labels: monthlySpending.map(item => item.month),
-    datasets: [
-      {
-        label: 'Monthly Spending',
-        data: monthlySpending.map(item => item.totalSpent),
-        backgroundColor: 'rgba(138, 75, 255, 0.6)',
-        borderColor: 'rgba(138, 75, 255, 1)',
-        borderWidth: 1,
-      },
-    ],
-  };
-  
-  // Create asset distribution data (mocked for now)
-  const assetDistributionData = {
-    labels: accounts.length > 0 ? accounts.map(account => account.name) : ['No Data'],
-    datasets: [
-      {
-        label: 'Asset Distribution',
-        data: accounts.length > 0 ? accounts.map(account => account.balance) : [0],
-        backgroundColor: 'rgba(138, 75, 255, 0.6)',
-        borderColor: 'rgba(138, 75, 255, 1)',
-        borderWidth: 1,
-      },
-    ],
-  };
-  
-  // Chart options for pie chart
-  const pieChartOptions = {
+
+  // Chart options
+  const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'right',
-        labels: {
-          usePointStyle: true,
-          padding: 20,
-          font: {
-            size: 12
-          }
-        }
+        display: false,
       },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            const label = context.label || '';
-            const value = context.raw || 0;
-            return `${label}: ${formatCurrency(value)}`;
-          }
-        }
-      }
-    }
-  };
-  
-  // Chart options for bar chart
-  const barChartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
+      title: {
         display: false,
       },
       tooltip: {
         callbacks: {
           label: function(context) {
-            const value = context.raw || 0;
-            return `Total: ${formatCurrency(value)}`;
+            return `$${context.raw.toFixed(2)}`;
           }
         }
       }
     },
     scales: {
       y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function(value) {
-            return formatCurrency(value);
-          }
+        display: false,
+        grid: {
+          display: false,
+        }
+      },
+      x: {
+        grid: {
+          display: false,
         }
       }
     }
   };
-  
-  // Handle switching visualization type
-  const handlePrevVisualization = () => {
-    setVisualizationType(visualizationType === 'spending' ? 'assets' : 'spending');
-  };
-  
-  const handleNextVisualization = () => {
-    setVisualizationType(visualizationType === 'spending' ? 'assets' : 'spending');
-  };
-  
-  // Calculate average and highest month spending
-  const calculateSpendingStats = () => {
-    if (!monthlySpending || monthlySpending.length === 0) {
-      return { average: 0, highest: 0, highestMonth: 'N/A' };
-    }
-    
-    const total = monthlySpending.reduce((sum, month) => sum + month.totalSpent, 0);
-    const average = total / monthlySpending.length;
-    
-    const highest = Math.max(...monthlySpending.map(month => month.totalSpent));
-    const highestMonth = monthlySpending.find(month => month.totalSpent === highest)?.month || 'N/A';
-    
-    return { average, highest, highestMonth };
-  };
-  
-  const { average, highest, highestMonth } = calculateSpendingStats();
-  
-  // Sample data - in a real app, this would come from your API/database
-  const financialSummary = {
-    totalBalance: 24680.42,
-    accounts: 4,
-    monthlyIncome: 6500,
-    monthlyExpenses: 4280.75,
-    budgetProgress: 68,
-    recentTransactions: [
-      { id: 1, date: '2023-06-15', description: 'Grocery Store', amount: -125.68, category: 'Food' },
-      { id: 2, date: '2023-06-14', description: 'Salary Deposit', amount: 3250.00, category: 'Income' },
-      { id: 3, date: '2023-06-12', description: 'Electric Bill', amount: -98.42, category: 'Utilities' },
-      { id: 4, date: '2023-06-10', description: 'Restaurant', amount: -86.29, category: 'Dining' },
-    ]
-  };
-  
-  if (loading) {
-    return (
-      <div className="dashboard-loading">
-        <p>Loading your financial data...</p>
-      </div>
-    );
-  }
-  
-  if (error) {
-    return (
-      <div className="dashboard-error">
-        <h2>Something went wrong</h2>
-        <p>{error}</p>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="btn btn-primary"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
-  
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Welcome, {currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'User'}</h1>
-        <p className="text-gray-600 mt-2">Here's your financial overview</p>
-      </header>
-
+      <h1 className="text-3xl font-bold mb-8">Your Financial Overview</h1>
+      
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Balance</h3>
-          <p className="text-3xl font-bold text-blue-600">${financialSummary.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-          <p className="text-sm text-gray-500 mt-2">Across {financialSummary.accounts} accounts</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Total Balance Card */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-gray-500 text-sm font-medium mb-2">Total Balance</h3>
+          <p className="text-3xl font-bold">${dashboardData.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">Monthly Income</h3>
-          <p className="text-3xl font-bold text-green-600">${financialSummary.monthlyIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-          <p className="text-sm text-gray-500 mt-2">Current month</p>
+        
+        {/* Connected Accounts Card */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-gray-500 text-sm font-medium mb-2">Connected Accounts</h3>
+          <p className="text-3xl font-bold text-indigo-600">{dashboardData.connectedAccounts}</p>
         </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">Monthly Expenses</h3>
-          <p className="text-3xl font-bold text-red-600">${financialSummary.monthlyExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-          <p className="text-sm text-gray-500 mt-2">Current month</p>
+        
+        {/* Recent Transactions Card */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-gray-500 text-sm font-medium mb-2">Recent Transactions</h3>
+          <p className="text-3xl font-bold text-indigo-600">{dashboardData.recentTransactions}</p>
         </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">Budget Progress</h3>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3 mb-4">
-            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${financialSummary.budgetProgress}%` }}></div>
+      </div>
+      
+      {/* Monthly Spending Chart */}
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">Monthly Spending Trend</h2>
+          <div className="flex space-x-2">
+            <button className="p-2 rounded hover:bg-gray-100">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <button className="p-2 rounded hover:bg-gray-100">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
           </div>
-          <p className="text-sm text-gray-500">{financialSummary.budgetProgress}% of monthly budget used</p>
+        </div>
+        
+        <div className="h-64 mb-6">
+          <Bar data={chartData} options={chartOptions} />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <p className="text-gray-500 text-sm mb-1">Average Monthly</p>
+            <p className="text-2xl font-bold">${dashboardData.averageMonthly.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <p className="text-gray-500 text-sm mb-1">Highest Month</p>
+            <p className="text-2xl font-bold">${dashboardData.highestMonth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          </div>
         </div>
       </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link to="/accounts/connect" className="flex flex-col items-center justify-center p-4 bg-blue-50 rounded-lg text-blue-700 hover:bg-blue-100 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            <span className="text-sm font-medium">Connect Account</span>
-          </Link>
-          <Link to="/transactions" className="flex flex-col items-center justify-center p-4 bg-green-50 rounded-lg text-green-700 hover:bg-green-100 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <span className="text-sm font-medium">View Transactions</span>
-          </Link>
-          <Link to="/budgets" className="flex flex-col items-center justify-center p-4 bg-purple-50 rounded-lg text-purple-700 hover:bg-purple-100 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            <span className="text-sm font-medium">Manage Budgets</span>
-          </Link>
-          <Link to="/settings" className="flex flex-col items-center justify-center p-4 bg-yellow-50 rounded-lg text-yellow-700 hover:bg-yellow-100 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span className="text-sm font-medium">Settings</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Recent Transactions */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      
+      {/* Your Accounts */}
+      <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">Recent Transactions</h2>
-          <Link to="/transactions" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-            View All
-          </Link>
+          <h2 className="text-2xl font-bold">Your Accounts</h2>
+          <Link to="/accounts" className="text-indigo-600 hover:text-indigo-800 font-medium">View All</Link>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Description
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {financialSummary.recentTransactions.map((transaction) => (
-                <tr key={transaction.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(transaction.date).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {transaction.description}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {transaction.category}
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-right ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {dashboardData.accounts.slice(0, 3).map(account => (
+            <div key={account.id} className="bg-white p-6 rounded-lg shadow-sm">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+                  <span className="text-yellow-800">💰</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold">{account.name}</h3>
+                  <p className="text-gray-500 text-sm">{account.institution} ••••{account.mask}</p>
+                </div>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-500">{account.type}</span>
+                <span className="font-bold">${account.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <p className="text-sm text-gray-500 text-right">Available</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Recent Transactions */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">Recent Transactions</h2>
+          <Link to="/transactions" className="text-indigo-600 hover:text-indigo-800 font-medium">View All</Link>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          {dashboardData.transactions.map((transaction, index) => (
+            <div key={transaction.id} className={`p-4 ${index !== dashboardData.transactions.length - 1 ? 'border-b' : ''}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                    {transaction.category === 'Payment' ? (
+                      <span>💳</span>
+                    ) : transaction.category === 'Travel' ? (
+                      <span>✈️</span>
+                    ) : (
+                      <span>💰</span>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-medium">{transaction.description}</h3>
+                    <div className="flex text-sm text-gray-500 space-x-2">
+                      <span>{new Date(transaction.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      <span>•</span>
+                      <span>{transaction.account}</span>
+                      <span>•</span>
+                      <span>{transaction.category}</span>
+                    </div>
+                  </div>
+                </div>
+                <span className={`font-medium ${transaction.amount < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                  {transaction.amount < 0 ? '-' : ''}${Math.abs(transaction.amount).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

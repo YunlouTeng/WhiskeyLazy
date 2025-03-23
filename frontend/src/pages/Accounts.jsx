@@ -205,7 +205,7 @@ const Accounts = () => {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('All Accounts');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   useEffect(() => {
@@ -285,7 +285,7 @@ const Accounts = () => {
   };
   
   // Filter accounts based on selected filter
-  const filteredAccounts = filter === 'all' 
+  const filteredAccounts = filter === 'All Accounts' 
     ? accounts 
     : accounts.filter(account => {
         const accountType = account.type || (account.subtype ? account.subtype : '');
@@ -328,54 +328,40 @@ const Accounts = () => {
   }
   
   return (
-    <div>
-      <h1>Accounts</h1>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">Accounts</h1>
       
-      {/* Account Summary */}
-      <div className="grid grid-cols-3 mb-lg">
-        <div className="card" style={{ margin: '0.5rem', padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Net Worth</h3>
-          <p style={{ 
-            fontSize: '1.75rem', 
-            fontWeight: 'bold',
-            color: totalBalance >= 0 ? 'var(--color-success)' : 'var(--color-danger)'
-          }}>
-            {formatCurrency(totalBalance)}
-          </p>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-500)' }}>
-            Across {accounts.length} accounts
-          </p>
+      {/* Financial Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Net Worth */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-gray-500 text-sm font-medium mb-2">Net Worth</h3>
+          <p className="text-3xl font-bold text-green-600">${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <p className="text-sm text-gray-500 mt-1">Across {accounts.length} accounts</p>
         </div>
         
-        <div className="card" style={{ margin: '0.5rem', padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Assets</h3>
-          <p style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--color-success)' }}>
-            {formatCurrency(totalPositiveBalance)}
-          </p>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-500)' }}>
-            Total positive balance
-          </p>
+        {/* Assets */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-gray-500 text-sm font-medium mb-2">Assets</h3>
+          <p className="text-3xl font-bold text-green-600">${totalPositiveBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <p className="text-sm text-gray-500 mt-1">Total positive balance</p>
         </div>
         
-        <div className="card" style={{ margin: '0.5rem', padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Debt</h3>
-          <p style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--color-danger)' }}>
-            {formatCurrency(totalNegativeBalance)}
-          </p>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-500)' }}>
-            Total negative balance
-          </p>
+        {/* Debt */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-gray-500 text-sm font-medium mb-2">Debt</h3>
+          <p className="text-3xl font-bold text-red-600">${totalNegativeBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <p className="text-sm text-gray-500 mt-1">Total negative balance</p>
         </div>
       </div>
       
-      {/* Add Account Banner */}
-      <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Connect Bank Section */}
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+        <div className="flex justify-between items-start">
           <div>
-            <h2 style={{ marginBottom: '0.5rem' }}>Connect a Bank Account</h2>
-            <p style={{ color: 'var(--color-gray-500)' }}>
-              Securely connect your financial institutions to automatically track your transactions.
-            </p>
+            <h2 className="text-xl font-bold mb-2">Connect a Bank Account</h2>
+            <p className="text-gray-600 mb-4">Securely connect your financial institutions to automatically track your transactions.</p>
+            <Link to="/connected-accounts" className="text-indigo-600 hover:text-indigo-800 font-medium">Manage Connected Accounts →</Link>
           </div>
           <PlaidLink 
             onSuccess={handlePlaidSuccess} 
@@ -383,32 +369,22 @@ const Accounts = () => {
             buttonText="+ Connect Bank"
           />
         </div>
-        
-        <div style={{ marginTop: '1rem' }}>
-          <Link to="/connected-accounts" className="btn btn-text" style={{ display: 'inline-flex', alignItems: 'center' }}>
-            <span>Manage Connected Accounts</span> 
-            <span style={{ marginLeft: '0.25rem' }}>→</span>
-          </Link>
-        </div>
       </div>
       
       {/* Accounts List */}
-      <div className="card" style={{ padding: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2>Your Accounts</h2>
-          <div>
-            <select 
-              className="input"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              style={{ minWidth: '150px' }}
-            >
-              <option value="all">All Accounts</option>
-              {accountTypes.map(type => (
-                <option key={type} value={type} style={{ textTransform: 'capitalize' }}>{type}</option>
-              ))}
-            </select>
-          </div>
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">Your Accounts</h2>
+          <select 
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="bg-white border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="All Accounts">All Accounts</option>
+            {accountTypes.map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
         </div>
         
         {error && (
