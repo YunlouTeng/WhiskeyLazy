@@ -12,6 +12,7 @@ import { extractErrorMessage } from '../utils/errorHandling';
 import AccountCard from '../components/AccountCard';
 import TransactionList from '../components/TransactionList';
 import BalanceChart from '../components/BalanceChart';
+import { useSupabaseAuth } from '../../../src/lib/supabaseHooks';
 
 // Register ChartJS components
 ChartJS.register(
@@ -93,6 +94,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [visualizationType, setVisualizationType] = useState('spending'); // 'spending' or 'assets'
+  const { user } = useSupabaseAuth();
   
   // Fetch data on component mount
   useEffect(() => {
@@ -316,6 +318,21 @@ const Dashboard = () => {
   
   const { average, highest, highestMonth } = calculateSpendingStats();
   
+  // Sample data - in a real app, this would come from your API/database
+  const financialSummary = {
+    totalBalance: 24680.42,
+    accounts: 4,
+    monthlyIncome: 6500,
+    monthlyExpenses: 4280.75,
+    budgetProgress: 68,
+    recentTransactions: [
+      { id: 1, date: '2023-06-15', description: 'Grocery Store', amount: -125.68, category: 'Food' },
+      { id: 2, date: '2023-06-14', description: 'Salary Deposit', amount: 3250.00, category: 'Income' },
+      { id: 3, date: '2023-06-12', description: 'Electric Bill', amount: -98.42, category: 'Utilities' },
+      { id: 4, date: '2023-06-10', description: 'Restaurant', amount: -86.29, category: 'Dining' },
+    ]
+  };
+  
   if (loading) {
     return (
       <div className="dashboard-loading">
@@ -340,112 +357,120 @@ const Dashboard = () => {
   }
   
   return (
-    <div className="dashboard">
-      <h1>Your Financial Overview</h1>
-      
-      {accounts.length === 0 ? (
-        <div className="connect-account-prompt">
-          <h2>Connect Your First Account</h2>
-          <p>To get started, connect a bank account to track your finances</p>
-          <a href="/connected-accounts" className="btn btn-primary">Connect a Bank Account</a>
+    <div className="container mx-auto px-4 py-8">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">Welcome, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</h1>
+        <p className="text-gray-600 mt-2">Here's your financial overview</p>
+      </header>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Balance</h3>
+          <p className="text-3xl font-bold text-blue-600">${financialSummary.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+          <p className="text-sm text-gray-500 mt-2">Across {financialSummary.accounts} accounts</p>
         </div>
-      ) : (
-        <>
-          {/* Summary Section */}
-          <div className="dashboard-summary">
-            <div className="summary-card total-balance">
-              <h3>Total Balance</h3>
-              <p className="amount">
-                {formatCurrency(totalBalance)}
-              </p>
-            </div>
-            
-            <div className="summary-card accounts-count">
-              <h3>Connected Accounts</h3>
-              <p className="count">{accounts.length}</p>
-            </div>
-            
-            <div className="summary-card transactions-count">
-              <h3>Recent Transactions</h3>
-              <p className="count">{transactions.length}</p>
-            </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Monthly Income</h3>
+          <p className="text-3xl font-bold text-green-600">${financialSummary.monthlyIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+          <p className="text-sm text-gray-500 mt-2">Current month</p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Monthly Expenses</h3>
+          <p className="text-3xl font-bold text-red-600">${financialSummary.monthlyExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+          <p className="text-sm text-gray-500 mt-2">Current month</p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Budget Progress</h3>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3 mb-4">
+            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${financialSummary.budgetProgress}%` }}></div>
           </div>
-          
-          {/* Monthly Spending Chart Section - With left/right arrows */}
-          <section className="dashboard-section">
-            <div className="section-header">
-              <button 
-                className="visualization-arrow left-arrow" 
-                onClick={handlePrevVisualization}
-                aria-label="Previous visualization"
-              >
-                <i className="material-icons">chevron_left</i>
-              </button>
-              
-              <div className="chart-title-container">
-                <h2 className="chart-title">
-                  {visualizationType === 'spending' ? 'Monthly Spending Trend' : 'Asset Distribution'}
-                </h2>
-              </div>
-              
-              <button 
-                className="visualization-arrow right-arrow" 
-                onClick={handleNextVisualization}
-                aria-label="Next visualization"
-              >
-                <i className="material-icons">chevron_right</i>
-              </button>
-            </div>
-            
-            <div className="chart-container">
-              {visualizationType === 'spending' ? (
-                <BalanceChart data={monthlySpending} />
-              ) : (
-                <div className="asset-chart">
-                  <Bar data={assetDistributionData} options={barChartOptions} />
-                </div>
-              )}
-              
-              {visualizationType === 'spending' && (
-                <div className="chart-stats">
-                  <div className="stat-box">
-                    <div className="stat-label">Average Monthly</div>
-                    <div className="stat-value">{formatCurrency(average)}</div>
-                  </div>
-                  <div className="stat-box">
-                    <div className="stat-label">Highest Month</div>
-                    <div className="stat-value">{formatCurrency(highest)}</div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-          
-          {/* Accounts Section */}
-          <section className="dashboard-section">
-            <div className="section-header">
-              <h2>Your Accounts</h2>
-              <a href="/accounts" className="view-all">View All</a>
-            </div>
-            
-            <div className="accounts-grid">
-              {accounts.map(account => (
-                <AccountCard key={account.id} account={account} />
+          <p className="text-sm text-gray-500">{financialSummary.budgetProgress}% of monthly budget used</p>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link to="/accounts/connect" className="flex flex-col items-center justify-center p-4 bg-blue-50 rounded-lg text-blue-700 hover:bg-blue-100 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <span className="text-sm font-medium">Connect Account</span>
+          </Link>
+          <Link to="/transactions" className="flex flex-col items-center justify-center p-4 bg-green-50 rounded-lg text-green-700 hover:bg-green-100 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span className="text-sm font-medium">View Transactions</span>
+          </Link>
+          <Link to="/budgets" className="flex flex-col items-center justify-center p-4 bg-purple-50 rounded-lg text-purple-700 hover:bg-purple-100 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <span className="text-sm font-medium">Manage Budgets</span>
+          </Link>
+          <Link to="/settings" className="flex flex-col items-center justify-center p-4 bg-yellow-50 rounded-lg text-yellow-700 hover:bg-yellow-100 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="text-sm font-medium">Settings</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Recent Transactions */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Recent Transactions</h2>
+          <Link to="/transactions" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+            View All
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Description
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Category
+                </th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Amount
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {financialSummary.recentTransactions.map((transaction) => (
+                <tr key={transaction.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(transaction.date).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {transaction.description}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {transaction.category}
+                  </td>
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-right ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </td>
+                </tr>
               ))}
-            </div>
-          </section>
-          
-          {/* Transactions Section */}
-          <section className="dashboard-section">
-            <div className="section-header">
-              <h2>Recent Transactions</h2>
-              <a href="/transactions" className="view-all">View All</a>
-            </div>
-            
-            <TransactionList transactions={recentTransactions} />
-          </section>
-        </>
-      )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

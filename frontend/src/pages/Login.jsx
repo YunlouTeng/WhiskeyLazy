@@ -1,97 +1,61 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
+import { supabase } from '../../../src/lib/supabase';
+import { useSupabaseAuth } from '../../../src/lib/supabaseHooks';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { isAuthenticated, loading } = useSupabaseAuth();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || '/dashboard';
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Reset error
-    setError('');
-    
-    // Simple validation
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
+  useEffect(() => {
+    // Redirect to the requested page if the user is already authenticated
+    if (isAuthenticated && !loading) {
+      navigate(from, { replace: true });
     }
-    
-    try {
-      setLoading(true);
-      const result = await login(email, password);
-      
-      if (result.success) {
-        // Redirect to dashboard
-        navigate('/');
-      }
-    } catch (err) {
-      setError('Login failed. Please check your credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [isAuthenticated, loading, navigate, from]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="p-4 text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container">
-      <div className="card" style={{ maxWidth: '400px', margin: '5rem auto' }}>
-        <h1 className="text-center" style={{ marginBottom: '2rem' }}>Sign In</h1>
-        
-        {error && (
-          <div style={{ 
-            padding: '0.75rem', 
-            marginBottom: '1rem', 
-            backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-            color: 'var(--color-danger)', 
-            borderRadius: 'var(--radius-md)' 
-          }}>
-            {error}
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email" className="label">Email</label>
-            <input
-              id="email"
-              type="email"
-              className="input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="password" className="label">Password</label>
-            <input
-              id="password"
-              type="password"
-              className="input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-          
-          <button 
-            type="submit" 
-            className="btn btn-primary" 
-            style={{ width: '100%', marginTop: '1rem' }}
-            disabled={loading}
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-        
-        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-          <p>Don't have an account? <Link to="/register">Create one</Link></p>
+    <div className="flex min-h-screen bg-gray-50">
+      <div className="m-auto w-full max-w-md p-8 bg-white rounded-lg shadow-md">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-blue-600">WhiskeyLazy Finance</h1>
+          <p className="mt-2 text-gray-600">Sign in or create an account to manage your finances</p>
         </div>
+
+        {!isAuthenticated && (
+          <Auth
+            supabaseClient={supabase}
+            appearance={{
+              theme: ThemeSupa,
+              variables: {
+                default: {
+                  colors: {
+                    brand: '#3B82F6', // blue-500
+                    brandAccent: '#2563EB', // blue-600
+                  },
+                },
+              },
+            }}
+            providers={['google', 'github']}
+            redirectTo={`${window.location.origin}/dashboard`}
+            socialLayout="horizontal"
+          />
+        )}
       </div>
     </div>
   );
