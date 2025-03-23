@@ -12,13 +12,56 @@
   publish = "dist"
 
 [functions]
-  directory = "api/functions"
+  directory = "../api/functions"
+  node_bundler = "esbuild"
 
+# Health check endpoint for easy API debugging
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/index"
+  status = 200
+  force = true
+
+# Specific redirects for each Plaid endpoint with high priority (force = true)
+[[redirects]]
+  from = "/api/plaid/create-link-token"
+  to = "/.netlify/functions/index"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/plaid/exchange-public-token"
+  to = "/.netlify/functions/index"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/plaid/accounts"
+  to = "/.netlify/functions/index"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/plaid/transactions"
+  to = "/.netlify/functions/index"
+  status = 200
+  force = true
+
+# Catch all other Plaid endpoints
+[[redirects]]
+  from = "/api/plaid/*"
+  to = "/.netlify/functions/index"
+  status = 200
+  force = true
+
+# General API endpoint handling
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+  force = true
 
+# Standard SPA fallback
 [[redirects]]
   from = "/*"
   to = "/index.html"

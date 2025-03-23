@@ -12,8 +12,30 @@ let API_BASE_URL = '/api';
 // For local development, we might need to use a different URL
 if (import.meta.env.DEV) {
   // If running frontend on different port than backend in development
-  API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+  API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+  console.log('DEV mode - Using API endpoint:', API_BASE_URL);
 }
+
+// In production, always use '/api' which will be handled by Netlify redirects
+if (import.meta.env.PROD) {
+  // Force using '/api' in production for Netlify redirects to work
+  API_BASE_URL = '/api';
+  console.log('PROD mode - API endpoint (forced):', API_BASE_URL);
+  console.log('NOTE: Ignoring VITE_API_URL in production for consistent routing');
+}
+
+// Clean up any potential double slashes or trailing slashes
+if (API_BASE_URL.endsWith('/')) {
+  API_BASE_URL = API_BASE_URL.slice(0, -1);
+  console.log('Removed trailing slash from API_BASE_URL:', API_BASE_URL);
+}
+
+// Print final API URL for debugging
+console.log('Final API_BASE_URL:', API_BASE_URL);
+
+// Check what location we're running at
+console.log('Current window location:', typeof window !== 'undefined' ? window.location.href : 'SSR');
+console.log('API requests will go to base:', API_BASE_URL);
 
 // Create axios instance with default config
 const api = axios.create({
@@ -21,6 +43,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // Add a timeout to prevent hanging requests
+  timeout: 15000,
 });
 
 // Interceptor to add authorization token
@@ -30,9 +54,55 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Log the full URL being requested (helpful for debugging)
+    // Make sure there's a slash between baseURL and url
+    if (config.baseURL && config.url && !config.url.startsWith('/') && !config.baseURL.endsWith('/')) {
+      console.log('Adding slash between baseURL and url to ensure proper path formation');
+      config.url = '/' + config.url;
+    }
+    
+    const fullUrl = config.baseURL 
+      ? `${config.baseURL}${config.url}` 
+      : config.url;
+    
+    console.log(`API Request: ${config.method?.toUpperCase() || 'GET'} ${fullUrl}`);
+    
+    // The previous code that removed leading slashes was causing the issue
+    // Now we ensure proper formatting instead of removing slashes
+    
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Response interceptor to handle common errors
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Log detailed error information
+    console.error('API Error:', error);
+    
+    if (error.response) {
+      console.error(`API Error ${error.response.status}: ${error.response.statusText}`);
+      
+      // If the response is HTML and not JSON (like a 404 page), log a clearer message
+      if (error.response.headers['content-type']?.includes('text/html')) {
+        console.error('API Error: Received HTML instead of JSON - likely a 404 or routing issue');
+        console.error('This usually means the API endpoint is not found or not correctly configured');
+        console.error('Check the .env file and Netlify redirects configuration');
+      }
+    } else if (error.request) {
+      console.error('API Error: No response received');
+      console.error('This could be a CORS issue or the server is not running');
+    } else {
+      console.error('API Error: Request setup failed');
+    }
+    
+    return Promise.reject(error);
+  }
 );
 
 // Create an authenticated axios instance with a specific token
@@ -88,10 +158,13 @@ export const extractErrorMessage = (error) => {
   return error.message || 'Network error. Please try again later.';
 };
 
+// Default export
 export default api;
+
+// Named exports
 export { API_BASE_URL };
 
-// API Endpoints
+// API Endpoints - ensure these have the correct format with leading slashes
 export const API_ENDPOINTS = {
   // Authentication
   LOGIN: '/auth/login',
@@ -107,11 +180,14 @@ export const API_ENDPOINTS = {
   // Financial Data
   ACCOUNTS: '/accounts',
   TRANSACTIONS: '/transactions',
-  SPENDING_MONTHLY: '/spending/monthly',
-  SPENDING_CATEGORIES: '/spending/categories',
+  
+  // Plaid Integration
+  PLAID_CREATE_LINK_TOKEN: '/plaid/create-link-token',
+  PLAID_EXCHANGE_PUBLIC_TOKEN: '/plaid/exchange-public-token',
+  PLAID_ACCOUNTS: '/plaid/accounts',
+  PLAID_TRANSACTIONS: '/plaid/transactions',
   
   // Settings
   SETTINGS: '/settings',
-  NOTIFICATION_PREFERENCES: '/settings/notifications',
-  CONNECTED_ACCOUNTS: '/settings/connected-accounts'
+  NOTIFICATION_PREFERENCES: '/settings/notifications'
 }; 
